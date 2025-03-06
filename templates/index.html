@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}News Server Manager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1 class="display-5 mb-3">
+            <i class="bi bi-newspaper text-primary me-2"></i>
+            News Recipes
+        </h1>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <button id="runAllBtn" class="btn btn-success btn-lg">
+            <i class="bi bi-play-fill me-1"></i>
+            Run All Enabled Recipes
+        </button>
+    </div>
+</div>
+
+<!-- GitHub Import Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card github-form">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-github me-2"></i>
+                    Import Recipes from GitHub
+                </h5>
+                <form id="githubImportForm" class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label for="repoUrl" class="form-label">Repository URL</label>
+                        <input type="url" class="form-control" id="repoUrl" name="repo_url" 
+                               placeholder="https://github.com/username/repository" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-download me-1"></i>
+                            Import Recipes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recipe Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5" id="recipesGrid">
+    {% for name, recipe in recipes.items() %}
+    <div class="col">
+        <div class="card h-100 recipe-card {% if not recipe.enabled %}recipe-disabled{% endif %}" id="recipe-{{ name }}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="form-check form-switch">
+                    <input class="form-check-input toggle-recipe" type="checkbox" 
+                           data-recipe="{{ name }}" id="toggle-{{ name }}"
+                           {% if recipe.enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="toggle-{{ name }}">Enabled</label>
+                </div>
+                <button class="btn btn-sm btn-success run-recipe" data-recipe="{{ name }}">
+                    <i class="bi bi-play-fill"></i> Run
+                </button>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ recipe.title }}</h5>
+                {% if recipe.description %}
+                <p class="card-text">{{ recipe.description }}</p>
+                {% endif %}
+            </div>
+            <div class="card-footer text-muted">
+                <small>Last run: {{ recipe.last_run|format_datetime or 'Never' }}</small>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No recipes found. Import some from GitHub or add them manually to the recipes folder.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Schedule Configuration -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock me-2"></i>
+                    Schedule Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_schedule') }}" method="post" class="row g-3">
+                    <div class="col-md-5">
+                        <label for="hour" class="form-label">Hour (cron format)</label>
+                        <input type="text" class="form-control" id="hour" name="hour" 
+                               value="{{ schedule.hour }}" required>
+                        <div class="form-text">Examples: */6 (every 6 hours), 0,12 (midnight and noon)</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="minute" class="form-label">Minute (cron format)</label>
+                        <input type="text" class="form-control" id="minute" name="minute" 
+                               value="{{ schedule.minute }}" required>
+                        <div class="form-text">Examples: 0 (on the hour), */15 (every 15 minutes)</div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Save Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle recipe enabled/disabled
+        document.querySelectorAll('.toggle-recipe').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const recipeName = this.dataset.recipe;
+                const isEnabled = this.checked;
+                const card = document.getElementById(`recipe-${recipeName}`);
+                
+                fetch(`/recipe/${recipeName}/toggle`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (isEnabled) {
+                            card.classList.remove('recipe-disabled');
+                            showToast('Success', `${recipeName} recipe enabled`);
+                        } else {
+                            card.classList.add('recipe-disabled');
+                            showToast('Success', `${recipeName} recipe disabled`);
+                        }
+                    } else {
+                        showToast('Error', data.error, 'error');
+                        // Revert the toggle
+                        this.checked = !isEnabled;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error', 'An unexpected error occurred', 'error');
+                    // Revert the toggle
+                    this.checked = !isEnabled;
+                });
+            });
+        });
+        
+        // Run single recipe
+        document.querySelectorAll('.run-recipe').forEach(button => {
+            button.addEventListener('click', function() {
+                const recipeName = this.dataset.recipe;
+                const originalHtml = this.innerHTML;
+                
+                // Disable button and show loading
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                
+                showLoading(`Running ${recipeName} recipe...`);
+                
+                fetch(`/recipe/${recipeName}/run`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Success', `${recipeName} recipe executed successfully`);
+                        // Reload the page to update last run time
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message,
+                            icon: 'error'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error', 'An unexpected error occurred', 'error');
+                })
+                .finally(() => {
+                    // Re-enable button
+                    this.disabled = false;
+                    this.innerHTML = originalHtml;
+                });
+            });
+        });
+        
+        // Run all recipes
+        document.getElementById('runAllBtn').addEventListener('click', function() {
+            const originalHtml = this.innerHTML;
+            
+            // Disable button and show loading
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            
+            showLoading('Running all enabled recipes...');
+            
+            fetch('/run-all', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const [recipe, result] of Object.entries(data)) {
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                }
+                
+                Swal.fire({
+                    title: 'Run Complete',
+                    html: `Successfully ran ${successCount} recipes.<br>${failCount} recipes failed.`,
+                    icon: failCount > 0 ? 'warning' : 'success'
+                }).then(() => {
+                    // Reload the page to update last run times
+                    location.reload();
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error', 'An unexpected error occurred', 'error');
+            })
+            .finally(() => {
+                // Re-enable button
+                this.disabled = false;
+                this.innerHTML = originalHtml;
+            });
+        });
+        
+        // GitHub import form
+        document.getElementById('githubImportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const repoUrl = document.getElementById('repoUrl').value;
+            if (!repoUrl) return;
+            
+            showLoading('Importing recipes from GitHub...');
+            
+            fetch('/github/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'repo_url': repoUrl
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const results = data.import_results;
+                    Swal.fire({
+                        title: 'Import Complete',
+                        html: `
+                            <p>${data.message}</p>
+                            <ul>
+                                <li>Total recipes found: ${results.total}</li>
+                                <li>Imported: ${results.imported}</li>
+                                <li>Skipped (identical): ${results.skipped}</li>
+                            </ul>
+                        `,
+                        icon: 'success'
+                    }).then(() => {
+                        // Reload page to show new recipes
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Import Failed',
+                        text: data.message,
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error', 'An unexpected error occurred', 'error');
+            });
+        });
+    });
+</script>
+{% endblock %}

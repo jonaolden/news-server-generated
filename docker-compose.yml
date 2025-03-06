@@ -4,13 +4,16 @@ services:
   news-server:
     build: .
     ports:
-      - "8080:8080"
+      - "8080:8080"  # Calibre server port
+      - "5000:5000"  # Web UI port
     volumes:
       - ./library:/opt/library
       - ./recipes:/opt/recipes
       - ./users.sqlite:/opt/users.sqlite
       - ./logs:/var/log/news_server
+      - ./webui_config.json:/opt/webui_config.json
     environment:
       - CALIBRE_USER=admin
-      - CALIBRE_PASSWORD=yourpassword
+      - CALIBRE_PASSWORD=secure_password123
+      - FLASK_SECRET_KEY=change_this_to_a_random_string_in_production
     restart: unless-stopped

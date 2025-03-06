@@ -1,14 +1,14 @@
 # News Server
 
-A Docker-based news server using Calibre to download and serve news articles.
+A Docker-based news server using Calibre to download and serve news articles, with an intuitive web interface for management.
 
 ## Features
 
-- Automatically downloads news from various sources using Calibre recipes
-- Serves news articles through Calibre's built-in server
-- Configurable through environment variables
-- Automatic periodic downloads through cron jobs
-- User authentication for accessing content
+- **Calibre Integration**: Automatically downloads news from various sources using Calibre recipes
+- **Web Interface**: Easily manage your recipes and downloads through a user-friendly web UI
+- **GitHub Import**: Import recipes directly from GitHub repositories
+- **Scheduling**: Configure and manage download schedules through the web interface
+- **User Authentication**: Secure access to both the Calibre server and management interface
 
 ## Quick Start
 
@@ -23,16 +23,36 @@ A Docker-based news server using Calibre to download and serve news articles.
    mkdir -p library recipes logs
    ```
 
-3. Customize your password in docker-compose.yml (default is "yourpassword")
+3. Customize your password in docker-compose.yml (default is "secure_password123")
 
 4. Build and start the container:
    ```bash
    docker-compose up -d
    ```
 
-5. Access your news server at http://localhost:8080
+5. Access your services:
+   - **Calibre Server**: http://localhost:8080
+   - **Management UI**: http://localhost:5000
    - Username: admin
    - Password: (value from docker-compose.yml)
+
+## Web Management Interface
+
+The Web UI provides a simple and intuitive interface to manage your news server:
+
+### Recipe Management
+- View all available recipes
+- Enable/disable individual recipes
+- Run individual recipes on demand
+- Run all enabled recipes at once
+
+### GitHub Integration
+- Import recipes directly from GitHub repositories
+- Just paste the repository URL and the system will import all .recipe files
+
+### Schedule Configuration
+- Configure the download schedule using cron syntax
+- Trigger manual downloads of all enabled recipes
 
 ## Configuration
 
@@ -48,6 +68,7 @@ The following environment variables can be configured in the docker-compose.yml 
 | CALIBRE_USER | Default admin username | admin |
 | CALIBRE_PASSWORD | Default admin password | admin |
 | LOG_DIR | Directory for logs | /var/log/news_server |
+| FLASK_SECRET_KEY | Secret key for Flask sessions | change_me_in_production |
 
 ### Volumes
 
@@ -59,6 +80,7 @@ The docker-compose.yml file mounts the following volumes:
 | ./recipes | /opt/recipes | Stores recipe files |
 | ./users.sqlite | /opt/users.sqlite | User database |
 | ./logs | /var/log/news_server | Log files |
+| ./webui_config.json | /opt/webui_config.json | Web UI configuration |
 
 ## Creating Custom Recipes
 
@@ -66,10 +88,14 @@ Calibre recipes are Python scripts that tell Calibre how to download and process
 
 If no recipes are found when the container starts, a sample BBC News recipe will be created automatically.
 
-To create your own recipe:
+You can create your own recipes in two ways:
 
-1. Create a new file in the `recipes` folder with a `.recipe` extension
-2. Write your recipe following the [Calibre recipe format](https://manual.calibre-ebook.com/news.html)
+1. **Through the Web UI**:
+   - Import recipes from GitHub repositories
+
+2. **Manually**:
+   - Create a new file in the `recipes` folder with a `.recipe` extension
+   - Write your recipe following the [Calibre recipe format](https://manual.calibre-ebook.com/news.html)
 
 Example recipe structure:
 
@@ -91,9 +117,19 @@ class MyNewsSource(BasicNewsRecipe):
     ]
 ```
 
+## Finding Recipe Repositories
+
+Here are some GitHub repositories with Calibre recipes you can import:
+
+1. **Calibre Recipes Collection**: https://github.com/kovidgoyal/calibre/tree/master/recipes
+2. **NiLuJe's Calibre Recipes**: https://github.com/NiLuJe/calibre-recipes
+
 ## Logs
 
-Logs are stored in the `logs` directory, with the main log file being `news_download.log`.
+Logs are stored in the `logs` directory:
+- `news_download.log`: Main log for news downloads
+- `webui_access.log`: Web UI access log
+- `webui_error.log`: Web UI error log
 
 You can view the logs with:
 ```bash
@@ -118,7 +154,7 @@ docker-compose up -d
 To backup your data:
 
 ```bash
-tar -czf news-server-backup.tar.gz library recipes users.sqlite logs
+tar -czf news-server-backup.tar.gz library recipes users.sqlite logs webui_config.json
 ```
 
 ## Troubleshooting
@@ -126,21 +162,16 @@ tar -czf news-server-backup.tar.gz library recipes users.sqlite logs
 ### No News Downloads
 
 If no news is being downloaded:
-
 1. Check the logs: `cat logs/news_download.log`
 2. Verify your recipe files are valid
-3. Try running a manual download:
-   ```bash
-   docker exec -it news-server-generated_news-server_1 su - calibre -c "bash /opt/download_news.sh"
-   ```
+3. Try running a manual download through the Web UI
 
 ### Can't Access Web Interface
 
 If you can't access the web interface:
-
 1. Verify the container is running: `docker ps`
 2. Check container logs: `docker-compose logs`
-3. Verify port 8080 is not being used by another application
+3. Verify ports 8080 and 5000 are not being used by another application
 
 ## License
 
