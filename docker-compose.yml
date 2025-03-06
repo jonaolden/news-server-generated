@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  news-server:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./library:/opt/library
+      - ./recipes:/opt/recipes
+      - ./users.sqlite:/opt/users.sqlite
+      - ./logs:/var/log/news_server
+    environment:
+      - CALIBRE_USER=admin
+      - CALIBRE_PASSWORD=yourpassword
+    restart: unless-stopped
