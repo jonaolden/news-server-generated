@@ -1,0 +1,19 @@
+# Ignore runtime data
+/library/
+/recipes/*.recipe
+!/recipes/sample.recipe
+/logs/
+users.sqlite
+
+# Ignore Docker build files
+.env
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore editor files
+.vscode/
+.idea/
+*.swp
+*.swo
