@@ -1,11 +1,12 @@
 #!/bin/bash
 set -e
 
-# Source environment variables if needed
-if [ -z "$LIBRARY_FOLDER" ] || [ -z "$RECIPES_FOLDER" ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Environment variables not set"
-    exit 1
-fi
+# Set default environment variables if not set
+LIBRARY_FOLDER="${LIBRARY_FOLDER:-/opt/library}"
+RECIPES_FOLDER="${RECIPES_FOLDER:-/opt/recipes}"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Using library folder: $LIBRARY_FOLDER"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Using recipes folder: $RECIPES_FOLDER"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Starting news download"
 
