@@ -12,8 +12,6 @@ services:
       - ./users.sqlite:/opt/users.sqlite
       - ./logs:/var/log/news_server
       - ./webui_config.json:/opt/webui_config.json
-    environment:
-      - CALIBRE_USER=admin
-      - CALIBRE_PASSWORD=secure_password123
-      - FLASK_SECRET_KEY=change_this_to_a_random_string_in_production
+    env_file:
+      - .env
     restart: unless-stopped

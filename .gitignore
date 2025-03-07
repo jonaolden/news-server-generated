@@ -5,8 +5,9 @@
 /logs/
 users.sqlite
 
-# Ignore Docker build files
+# Ignore Docker build files and environment variables
 .env
+.env.*
 
 # Ignore OS files
 .DS_Store

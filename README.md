@@ -23,14 +23,23 @@ A Docker-based news server using Calibre to download and serve news articles, wi
    mkdir -p library recipes logs
    ```
 
-3. Customize your password in docker-compose.yml (default is "secure_password123")
+3. Create a .env file from the example:
+   ```bash
+   cp .env.example .env
+   ```
+   
+4. Edit the .env file to customize your settings:
+   ```bash
+   # Set a secure password
+   nano .env
+   ```
 
-4. Build and start the container:
+5. Build and start the container:
    ```bash
    docker-compose up -d
    ```
 
-5. Access your services:
+6. Access your services:
    - **Calibre Server**: http://localhost:8080
    - **Management UI**: http://localhost:5000
    - Username: admin
@@ -58,7 +67,7 @@ The Web UI provides a simple and intuitive interface to manage your news server:
 
 ### Environment Variables
 
-The following environment variables can be configured in the docker-compose.yml file:
+The following environment variables can be configured in the `.env` file:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
